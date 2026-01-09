@@ -1,0 +1,346 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "27fc8506-837b-4c4f-9eff-75663eace01d",
+      "name": "Telegram Trigger",
+      "webhookId": "57b9fa23-7dd6-41f3-8eae-62129da62552",
+      "credentials": {
+        "telegramApi": {
+          "id": "W6JcMMsrpJH7hL9x",
+          "name": "Real State"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "=You are a professional real estate qualification assistant.\nYour role is to interact with the client, collect structured information, internally evaluate their readiness, and decide whether they qualify as a high-priority lead.\n\n====================\nDATA TO COLLECT\n====================\n\nYou must collect the following information conversationally and politely:\n\n1. Property Type (one choice only):\n   - Apartment\n   - Villa\n   - Commercial\n\n2. Purpose:\n   - Buy\n   - Rent\n\n3. Property Condition:\n   - New\n   - Resale\n\n4. First Property Purchase:\n   - Yes\n   - No\n\n5. Timeline:\n   - Immediately\n   - Within 1 month\n   - 1–3 months\n   - 3–6 months\n   - Over 6 months\n\n6. Budget Range:\n   - Ask the user for their budget range clearly.\n   - Evaluate the seriousness of the budget internally based on:\n     - Clarity (specific numbers > vague answers)\n     - Realism (reasonable for market context)\n     - Commitment level\n   - Assign a score internally (do NOT show it).\n\n7. Personal Information:\n   - Full Name\n   - Phone Number\n   - Email Address\n\n====================\nSCORING RULES (INTERNAL ONLY)\n====================\n\nYou must calculate an internal score using the following rules:\n\nproperty_type:\n- Apartment → 10 points\n- Villa → 15 points\n- Commercial → 10 points\n\nbuy_rent:\n- Buy → 15 points\n- Rent → 5 points\n\nnew_resale:\n- New → 10 points\n- Resale → 10 points\n\nfirst_purchase:\n- No → 10 points\n- Yes → 5 points\n\nTimeline:\n- Immediately → 20 points\n- Within 1 month → 15 points\n- 1–3 months → 10 points\n- 3–6 months → 5 points\n- Over 6 months → 0 points\n\nBudget:\n- You must evaluate and assign points based on confidence and seriousness.\n- Use your judgment to score it fairly.\n\n====================\nIMPORTANT RULES\n====================\n\n- NEVER show the score, points, or evaluation logic to the user.\n- NEVER mention that scoring exists.\n- Maintain a natural, friendly, and professional conversation.\n- If any required information is missing, ask follow-up questions.\n- Validate email and phone number format politely.\n- Assume the role of a real human assistant, not a form.\n\n====================\nDECISION LOGIC\n====================\n- Total score is equal 100 (top most)\n- After collecting all information, calculate the final average score internally.\n- If the final score is GREATER THAN OR EQUAL TO 80:\n  → Append the lead to the connected Google Sheet with all collected data automatically and don't complete iff it added.\n- If the score is below 80:\n  → Do NOT append to Google Sheet.\n  → Respond politely and end the conversation professionally.\n\n====================\nOUTPUT BEHAVIOR\n====================\n\n- User-facing responses must NEVER include:\n  - Scores\n  - Qualification status\n  - Internal decisions\n- Your final response should always sound helpful, respectful, and human.\n\n\n====================\nMeeting Schedule\n====================\n- If the score with greater than or equal 80 you can schedule a meet with the client and book the meeting at google calender.\n- Define meeting_start from the user, and meeting_end and pass it to google calender tool."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "dbf1ee29-37b0-4e91-a29a-3e48c1d9a7e9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "xiaomi/mimo-v2-flash:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        96,
+        208
+      ],
+      "id": "88265dfb-4df9-4dfc-975a-635c488aeb83",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "dGkNxj2wcbdqY30E",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.chat.id }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        208
+      ],
+      "id": "a79a66c4-2a6c-43ea-9d03-359fdf07b1fc",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "211116bb-3a69-4ba1-8ee0-0489344669ea",
+      "name": "Send a text message",
+      "webhookId": "3400c759-1f0d-4278-82ce-2b9d22caa97f",
+      "credentials": {
+        "telegramApi": {
+          "id": "W6JcMMsrpJH7hL9x",
+          "name": "Real State"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1I5pX2_Ew-ZQf1-znTpZsoExFYw0HqlYaPGF_vShLz90",
+          "mode": "list",
+          "cachedResultName": "Training On n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I5pX2_Ew-ZQf1-znTpZsoExFYw0HqlYaPGF_vShLz90/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 641864727,
+          "mode": "list",
+          "cachedResultName": "sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1I5pX2_Ew-ZQf1-znTpZsoExFYw0HqlYaPGF_vShLz90/edit#gid=641864727"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "property_type": "={{ $fromAI(\"property_type\") }}",
+            "buy_rent": "={{ $fromAI(\"buy_rent\") }}",
+            "Score": "={{ $fromAI(\"score\") }}",
+            "Email": "={{ $fromAI(\"email\") }}",
+            "Name": "={{ $fromAI(\"name\") }}",
+            "Budget": "={{ $fromAI(\"budget\") }}",
+            "Timeline": "={{ $fromAI(\"timeline\") }}",
+            "first_purchase": "={{ $fromAI(\"first_purchase\") }}",
+            "new_resale": "={{ $fromAI(\"new_resale\") }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "property_type",
+              "displayName": "property_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "buy_rent",
+              "displayName": "buy_rent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "new_resale",
+              "displayName": "new_resale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "first_purchase",
+              "displayName": "first_purchase",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        352,
+        208
+      ],
+      "id": "c381f1ed-9afb-46cc-9e46-f8a803f1a367",
+      "name": "Append row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "orIBzBSVK4tDIGBX",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "ahmedmadeh192002@gmail.com",
+          "mode": "list",
+          "cachedResultName": "ahmedmadeh192002@gmail.com"
+        },
+        "start": "={{ $fromAI('Start', `the start hour of the meeting`, 'number') }}",
+        "end": "={{ $fromAI('End', `the end hour of the meeting`, 'number') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        208
+      ],
+      "id": "e1f9e522-0cec-4ddf-b519-3611364a94b4",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "WIznuQbiBA8WWoAS",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "f843d953-8b9a-473e-b2b4-fbfdad032161",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "18994c27b3e92078b1d7b99e10eb7c8985a2ef698ea83b231b7051e071996008"
+  },
+  "id": "FE2wM0IgpDaIhO75",
+  "tags": []
+}
